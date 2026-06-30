@@ -1,0 +1,12 @@
+server:
+  port: 8080
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://despachoservice2.b2clogin.com/5199d2b5-40ed-44c1-a8e5-f4a83132a743/v2.0/
+
+storage:
+  path: /app/efs/guias
