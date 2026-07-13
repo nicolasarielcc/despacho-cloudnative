@@ -30,7 +30,7 @@ RUN mvn dependency:go-offline -B || echo "Algunas dependencias no se pudieron re
 COPY src ./src
 
 # Compilar y empaquetar (sin ejecutar tests en esta etapa)
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -Dmaven.test.skip=true -B
 
 # --- ETAPA 2: RUNTIME (solo el .jar en una imagen ligera) ---
 FROM eclipse-temurin:17-jre-alpine AS runtime
