@@ -24,6 +24,40 @@ services:
     depends_on:
       - rabbitmq1
 
+  producer:
+    build: .
+    container_name: transportista-producer
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_RABBITMQ_HOST: rabbitmq1
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_LISTENER_SIMPLE_AUTO_STARTUP: "false"
+      APP_SECURITY_ENABLED: "false"
+    networks:
+      - rabbitmq
+    depends_on:
+      - rabbitmq1
+    restart: unless-stopped
+
+  consumer:
+    build: .
+    container_name: transportista-consumer
+    ports:
+      - "8081:8081"
+    environment:
+      SERVER_PORT: "8081"
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_RABBITMQ_HOST: rabbitmq1
+      SPRING_RABBITMQ_PORT: 5672
+      APP_SECURITY_ENABLED: "false"
+    networks:
+      - rabbitmq
+    depends_on:
+      - rabbitmq1
+    restart: unless-stopped
+
 networks:
   rabbitmq:
     driver: bridge

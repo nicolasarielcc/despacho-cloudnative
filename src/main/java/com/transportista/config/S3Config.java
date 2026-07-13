@@ -1,56 +1,56 @@
 package com.transportista.config;
 
-import lombok.extern.slf4j.Slf4j;
+import com.transportista.service.S3Service;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 
-/**
- * Configuración de AWS S3.
- *
- * IMPORTANTE: Esta clase es un placeholder. La integración real con S3
- * se hará cuando se tengan las credenciales de AWS Academy.
- *
- * Para activar S3, debes:
- * 1. Agregar las credenciales en application.yml:
- *    cloud.aws.credentials.access-key=<AWS_ACCESS_KEY_ID>
- *    cloud.aws.credentials.secret-key=<AWS_SECRET_ACCESS_KEY>
- *    cloud.aws.credentials.session-token=<AWS_SESSION_TOKEN>
- *    cloud.aws.region.static=us-east-1
- *    cloud.aws.s3.bucket-name=<nombre-del-bucket>
- *
- * 2. Descomentar la dependencia en pom.xml (spring-cloud-aws-starter-s3)
- *    y la configuración en application.yml.
- *
- * 3. Crear la clase S3Service que use S3Client para subir/descargar archivos.
- *
- * Los valores de AWS se obtienen de:
- *   AWS Academy → Learner Lab → AWS Details → AWS CLI
- *   Copiar: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN
- *
- * RECUERDA: Estos valores CAMBIAN cada vez que inicias sesión en AWS Academy.
- */
-@Slf4j
 @Configuration
+@Profile("!test")
 public class S3Config {
 
-    // TODO: Descomentar cuando se configure AWS
+    @Value("${cloud.aws.credentials.access-key:}")
+    private String accessKey;
 
-    /*
-    @Value("${cloud.aws.s3.bucket-name}")
-    private String bucketName;
+    @Value("${cloud.aws.credentials.secret-key:}")
+    private String secretKey;
 
-    @Value("${cloud.aws.region.static}")
+    @Value("${cloud.aws.credentials.session-token:}")
+    private String sessionToken;
+
+    @Value("${cloud.aws.region.static:us-east-1}")
     private String region;
+
+    @Value("${cloud.aws.s3.bucket-name:guias-despacho-transportista}")
+    private String bucketName;
 
     @Bean
     public S3Client s3Client() {
-        return S3Client.builder()
-                .region(Region.of(region))
-                .build();
+        if (sessionToken != null && !sessionToken.isBlank()) {
+            return S3Client.builder()
+                    .region(Region.of(region))
+                    .credentialsProvider(StaticCredentialsProvider.create(
+                            AwsSessionCredentials.create(accessKey, secretKey, sessionToken)))
+                    .build();
+        }
+        if (accessKey != null && !accessKey.isBlank()) {
+            return S3Client.builder()
+                    .region(Region.of(region))
+                    .credentialsProvider(StaticCredentialsProvider.create(
+                            AwsBasicCredentials.create(accessKey, secretKey)))
+                    .build();
+        }
+        return S3Client.builder().region(Region.of(region)).build();
     }
 
     @Bean
     public S3Service s3Service(S3Client s3Client) {
         return new S3Service(s3Client, bucketName);
     }
-    */
 }
