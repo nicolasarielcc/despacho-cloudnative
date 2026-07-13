@@ -1,0 +1,32 @@
+# ============================================================
+# APLICACIÓN — CONFIGURACIÓN YAML (complementaria)
+# Se usa para la configuración de AWS S3 principalmente
+# Las credenciales de AWS vienen de variables de entorno
+# o secrets de GitHub Actions en producción
+# ============================================================
+
+# --- Configuración de AWS ---
+# IMPORTANTE: Descomenta y completa estas líneas cuando tengas
+# las credenciales de AWS Academy (Learner Lab)
+# Los valores se obtienen de: AWS Details > AWS CLI
+#cloud:
+#  aws:
+#    credentials:
+#      access-key: ${AWS_ACCESS_KEY_ID}
+#      secret-key: ${AWS_SECRET_ACCESS_KEY}
+#      session-token: ${AWS_SESSION_TOKEN}
+#    region:
+#      static: ${AWS_REGION:us-east-1}
+#    s3:
+#      bucket: ${S3_BUCKET_NAME}
+
+# --- RabbitMQ ---
+# Configuración adicional si se requiere (opcional)
+# rabbitmq:
+#   queues:
+#     exitosas: cola-guias-exitosas
+#     errores: cola-guias-error
+#   exchange: exchange-guias
+#   routing:
+#     exitosa: guia.exitosa
+#     error: guia.error

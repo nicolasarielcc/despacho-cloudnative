@@ -1,0 +1,29 @@
+version: '3'
+services:
+  rabbitmq1:
+    image: rabbitmq:3-management
+    hostname: rabbitmq1
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: 'mysecretcookie'
+    networks:
+      - rabbitmq
+
+  rabbitmq2:
+    image: rabbitmq:3-management
+    hostname: rabbitmq2
+    ports:
+      - "15673:15672"
+      - "5673:5672"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: 'mysecretcookie'
+    networks:
+      - rabbitmq
+    depends_on:
+      - rabbitmq1
+
+networks:
+  rabbitmq:
+    driver: bridge
