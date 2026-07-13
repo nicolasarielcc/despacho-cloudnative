@@ -90,7 +90,7 @@ class GuiaDespachoServiceTest {
         @DisplayName("Guarda en BD y envía a cola exitosa cuando todo funciona")
         void debeGuardarYEnviarAColaExitosa() {
             when(guiaRepository.save(any(GuiaDespacho.class))).thenReturn(guiaGuardada);
-            doNothing().when(guiaProducer).enviarGuiaExitosa(any());
+            doNothing().when(guiaProducer).enviarAColaPrincipal(any());
 
             GuiaDespachoResponse response = service.crearGuia(request);
 
@@ -98,10 +98,10 @@ class GuiaDespachoServiceTest {
             verify(guiaRepository, times(2)).save(any(GuiaDespacho.class));
 
             // Verificar que envió a la cola de exitosas
-            verify(guiaProducer, times(1)).enviarGuiaExitosa(any());
+            verify(guiaProducer, times(1)).enviarAColaPrincipal(any());
 
             // NO debe enviar a cola de error
-            verify(guiaProducer, never()).enviarGuiaError(any());
+            verify(guiaProducer, never()).enviarAColaPrincipal(any());
 
             assertEquals(EstadoGuia.ENVIADA, response.getEstado());
             assertEquals("Juan Perez", response.getTransportista());
@@ -116,13 +116,13 @@ class GuiaDespachoServiceTest {
         void siFallaEnvio_guardaComoError_yEnviaAColaError() {
             when(guiaRepository.save(any(GuiaDespacho.class))).thenReturn(guiaGuardada);
             doThrow(new RuntimeException("RabbitMQ caído"))
-                    .when(guiaProducer).enviarGuiaExitosa(any());
-            doNothing().when(guiaProducer).enviarGuiaError(any());
+                    .when(guiaProducer).enviarAColaPrincipal(any());
+            doNothing().when(guiaProducer).enviarAColaPrincipal(any());
 
             GuiaDespachoResponse response = service.crearGuia(request);
 
-            verify(guiaProducer, times(1)).enviarGuiaExitosa(any());
-            verify(guiaProducer, times(1)).enviarGuiaError(any());
+            verify(guiaProducer, times(1)).enviarAColaPrincipal(any());
+            verify(guiaProducer, times(1)).enviarAColaPrincipal(any());
             assertEquals(EstadoGuia.CON_ERROR, guiaGuardada.getEstado());
         }
 
@@ -130,7 +130,7 @@ class GuiaDespachoServiceTest {
         @DisplayName("El código de guía se genera automáticamente con formato GD-*")
         void debeGenerarCodigoGuiaAutomaticamente() {
             when(guiaRepository.save(any(GuiaDespacho.class))).thenReturn(guiaGuardada);
-            doNothing().when(guiaProducer).enviarGuiaExitosa(any());
+            doNothing().when(guiaProducer).enviarAColaPrincipal(any());
 
             GuiaDespachoResponse response = service.crearGuia(request);
 
@@ -154,7 +154,7 @@ class GuiaDespachoServiceTest {
         void debeModificarYReenviar() {
             when(guiaRepository.findById(1L)).thenReturn(Optional.of(guiaGuardada));
             when(guiaRepository.save(any(GuiaDespacho.class))).thenReturn(guiaGuardada);
-            doNothing().when(guiaProducer).enviarGuiaExitosa(any());
+            doNothing().when(guiaProducer).enviarAColaPrincipal(any());
 
             GuiaDespachoRequest nuevosDatos = GuiaDespachoRequest.builder()
                     .transportista("Maria Lopez")
@@ -167,7 +167,7 @@ class GuiaDespachoServiceTest {
 
             GuiaDespachoResponse response = service.modificarGuia(1L, nuevosDatos);
 
-            verify(guiaProducer, times(1)).enviarGuiaExitosa(any());
+            verify(guiaProducer, times(1)).enviarAColaPrincipal(any());
             assertEquals("Maria Lopez", response.getTransportista());
             assertEquals("Concepción", response.getOrigen());
             assertEquals("Temuco", response.getDestino());

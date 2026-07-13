@@ -40,20 +40,20 @@ class TransportistaApplicationTests {
     // ================================================================
 
     @Test
-    @DisplayName("Criterio 2: Bean colaExitosa está configurado")
-    void rabbitMQ_colaExitosa_estaConfigurada() {
-        Queue cola = context.getBean("colaExitosa", Queue.class);
+    @DisplayName("Criterio 2: Bean colaPrincipal está configurado")
+    void rabbitMQ_colaPrincipal_estaConfigurada() {
+        Queue cola = context.getBean("colaPrincipal", Queue.class);
         assertNotNull(cola, "La cola de exitosas debe existir");
-        assertEquals(RabbitMQConfig.QUEUE_EXITOSA, cola.getName(), "Nombre correcto de cola");
+        assertEquals(RabbitMQConfig.QUEUE_PRINCIPAL, cola.getName(), "Nombre correcto de cola");
         assertTrue(cola.isDurable(), "La cola debe ser durable");
     }
 
     @Test
-    @DisplayName("Criterio 2: Bean colaError está configurado")
-    void rabbitMQ_colaError_estaConfigurada() {
-        Queue cola = context.getBean("colaError", Queue.class);
+    @DisplayName("Criterio 2: Bean colaDlq está configurado")
+    void rabbitMQ_colaDlq_estaConfigurada() {
+        Queue cola = context.getBean("colaDlq", Queue.class);
         assertNotNull(cola, "La cola de errores debe existir");
-        assertEquals(RabbitMQConfig.QUEUE_ERROR, cola.getName(), "Nombre correcto de cola");
+        assertEquals(RabbitMQConfig.QUEUE_ERROR_DLQ, cola.getName(), "Nombre correcto de cola");
     }
 
     @Test
@@ -66,20 +66,20 @@ class TransportistaApplicationTests {
 
     @Test
     @DisplayName("Criterio 2: Binding exitosa existe (cola-exitosa ← exchange)")
-    void rabbitMQ_bindingExitosa_existe() {
-        Binding binding = context.getBean("bindingExitosa", Binding.class);
+    void rabbitMQ_bindingPrincipal_existe() {
+        Binding binding = context.getBean("bindingPrincipal", Binding.class);
         assertNotNull(binding, "Binding de exitosas debe existir");
-        assertEquals(RabbitMQConfig.QUEUE_EXITOSA, binding.getDestination(), "Destino correcto");
+        assertEquals(RabbitMQConfig.QUEUE_PRINCIPAL, binding.getDestination(), "Destino correcto");
         assertEquals(RabbitMQConfig.EXCHANGE, binding.getExchange(), "Exchange correcto");
-        assertEquals(RabbitMQConfig.ROUTING_KEY_EXITOSA, binding.getRoutingKey(), "Routing key correcta");
+        assertEquals(RabbitMQConfig.ROUTING_KEY_PRINCIPAL, binding.getRoutingKey(), "Routing key correcta");
     }
 
     @Test
     @DisplayName("Criterio 2: Binding error existe (cola-error ← exchange)")
-    void rabbitMQ_bindingError_existe() {
-        Binding binding = context.getBean("bindingError", Binding.class);
+    void rabbitMQ_bindingDlq_existe() {
+        Binding binding = context.getBean("bindingDlq", Binding.class);
         assertNotNull(binding, "Binding de error debe existir");
-        assertEquals(RabbitMQConfig.QUEUE_ERROR, binding.getDestination(), "Destino correcto");
+        assertEquals(RabbitMQConfig.QUEUE_ERROR_DLQ, binding.getDestination(), "Destino correcto");
         assertEquals(RabbitMQConfig.EXCHANGE, binding.getExchange(), "Exchange correcto");
         assertEquals(RabbitMQConfig.ROUTING_KEY_ERROR, binding.getRoutingKey(), "Routing key correcta");
     }
@@ -87,9 +87,9 @@ class TransportistaApplicationTests {
     @Test
     @DisplayName("Criterio 2: Las routing keys son diferentes entre sí")
     void rabbitMQ_routingKeys_diferentes() {
-        assertNotEquals(RabbitMQConfig.ROUTING_KEY_EXITOSA, RabbitMQConfig.ROUTING_KEY_ERROR,
+        assertNotEquals(RabbitMQConfig.ROUTING_KEY_PRINCIPAL, RabbitMQConfig.ROUTING_KEY_ERROR,
                 "Las routing keys deben ser diferentes");
-        assertNotEquals(RabbitMQConfig.QUEUE_EXITOSA, RabbitMQConfig.QUEUE_ERROR,
+        assertNotEquals(RabbitMQConfig.QUEUE_PRINCIPAL, RabbitMQConfig.QUEUE_ERROR_DLQ,
                 "Los nombres de cola deben ser diferentes");
     }
 

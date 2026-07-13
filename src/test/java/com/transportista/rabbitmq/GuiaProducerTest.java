@@ -23,8 +23,8 @@ import static org.mockito.Mockito.*;
  * Tests unitarios para GuiaProducer (Criterio 2 — RabbitMQ).
  *
  * Verifica que:
- * 1. enviarGuiaExitosa() envía a la cola correcta con la routing key correcta
- * 2. enviarGuiaError() envía a la cola correcta con la routing key correcta
+ * 1. enviarAColaPrincipal() envía a la cola correcta con la routing key correcta
+ * 2. enviarAColaPrincipal() envía a la cola correcta con la routing key correcta
  * 3. Los mensajes se serializan como objetos GuiaDespacho
  */
 @ExtendWith(MockitoExtension.class)
@@ -56,10 +56,10 @@ class GuiaProducerTest {
     }
 
     @Test
-    @DisplayName("enviarGuiaExitosa: usa exchange-guias y routing key guia.exitosa")
-    void enviarGuiaExitosa_debeUsarExchangeYRkCorrectos() {
+    @DisplayName("enviarAColaPrincipal: usa exchange-guias y routing key guia.exitosa")
+    void enviarAColaPrincipal_debeUsarExchangeYRkCorrectos() {
         // Ejecutar
-        guiaProducer.enviarGuiaExitosa(guiaTest);
+        guiaProducer.enviarAColaPrincipal(guiaTest);
 
         // Verificar que se llamó a convertAndSend con los parámetros correctos
         ArgumentCaptor<String> routingKeyCaptor = ArgumentCaptor.forClass(String.class);
@@ -68,14 +68,14 @@ class GuiaProducerTest {
                 routingKeyCaptor.capture(),
                 eq(guiaTest));
 
-        assertEquals(RabbitMQConfig.ROUTING_KEY_EXITOSA, routingKeyCaptor.getValue(),
+        assertEquals(RabbitMQConfig.ROUTING_KEY_PRINCIPAL, routingKeyCaptor.getValue(),
                 "La routing key debe ser 'guia.exitosa'");
     }
 
     @Test
-    @DisplayName("enviarGuiaExitosa: envía el mismo objeto GuiaDespacho que recibe")
-    void enviarGuiaExitosa_debeEnviarElMismoObjeto() {
-        guiaProducer.enviarGuiaExitosa(guiaTest);
+    @DisplayName("enviarAColaPrincipal: envía el mismo objeto GuiaDespacho que recibe")
+    void enviarAColaPrincipal_debeEnviarElMismoObjeto() {
+        guiaProducer.enviarAColaPrincipal(guiaTest);
 
         ArgumentCaptor<GuiaDespacho> guiaCaptor = ArgumentCaptor.forClass(GuiaDespacho.class);
         verify(rabbitTemplate).convertAndSend(
@@ -90,9 +90,9 @@ class GuiaProducerTest {
     }
 
     @Test
-    @DisplayName("enviarGuiaError: usa exchange-guias y routing key guia.error")
-    void enviarGuiaError_debeUsarExchangeYRkCorrectos() {
-        guiaProducer.enviarGuiaError(guiaTest);
+    @DisplayName("enviarAColaPrincipal: usa exchange-guias y routing key guia.error")
+    void enviarAColaPrincipal_debeUsarExchangeYRkCorrectos() {
+        guiaProducer.enviarAColaPrincipal(guiaTest);
 
         ArgumentCaptor<String> routingKeyCaptor = ArgumentCaptor.forClass(String.class);
         verify(rabbitTemplate, times(1)).convertAndSend(
@@ -105,10 +105,10 @@ class GuiaProducerTest {
     }
 
     @Test
-    @DisplayName("enviarGuiaError: envía el objeto incluso si el estado es CON_ERROR")
-    void enviarGuiaError_debeEnviarGuiaEnEstadoError() {
+    @DisplayName("enviarAColaPrincipal: envía el objeto incluso si el estado es CON_ERROR")
+    void enviarAColaPrincipal_debeEnviarGuiaEnEstadoError() {
         guiaTest.setEstado(EstadoGuia.CON_ERROR);
-        guiaProducer.enviarGuiaError(guiaTest);
+        guiaProducer.enviarAColaPrincipal(guiaTest);
 
         verify(rabbitTemplate, times(1)).convertAndSend(
                 eq(RabbitMQConfig.EXCHANGE),
@@ -119,7 +119,7 @@ class GuiaProducerTest {
     @Test
     @DisplayName("No debería mezclar routing keys entre exitosa y error")
     void noDebeMezclarRoutingKeys() {
-        guiaProducer.enviarGuiaExitosa(guiaTest);
+        guiaProducer.enviarAColaPrincipal(guiaTest);
         verify(rabbitTemplate, never()).convertAndSend(
                 eq(RabbitMQConfig.EXCHANGE),
                 eq(RabbitMQConfig.ROUTING_KEY_ERROR),
@@ -127,10 +127,10 @@ class GuiaProducerTest {
 
         clearInvocations(rabbitTemplate);
 
-        guiaProducer.enviarGuiaError(guiaTest);
+        guiaProducer.enviarAColaPrincipal(guiaTest);
         verify(rabbitTemplate, never()).convertAndSend(
                 eq(RabbitMQConfig.EXCHANGE),
-                eq(RabbitMQConfig.ROUTING_KEY_EXITOSA),
+                eq(RabbitMQConfig.ROUTING_KEY_PRINCIPAL),
                 any(Object.class));
     }
 }

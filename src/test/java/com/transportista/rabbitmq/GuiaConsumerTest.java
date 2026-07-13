@@ -22,8 +22,8 @@ import static org.mockito.Mockito.*;
  * Tests unitarios para GuiaConsumer (Criterio 2 — RabbitMQ).
  *
  * Verifica que:
- * 1. consumirGuiaExitosa() guarda el mensaje en GUIA_DESPACHO_PROCESADA
- * 2. consumirGuiaError() registra el error sin lanzar excepción
+ * 1. procesarGuia() guarda el mensaje en GUIA_DESPACHO_PROCESADA
+ * 2. procesarDlq() registra el error sin lanzar excepción
  * 3. Los mensajes de error NO se guardan en la tabla de procesadas
  * 4. Si el guardado falla, se lanza RuntimeException (para DLX)
  */
@@ -57,12 +57,12 @@ class GuiaConsumerTest {
     }
 
     @Test
-    @DisplayName("consumirGuiaExitosa: guarda en GUIA_DESPACHO_PROCESADA")
-    void consumirGuiaExitosa_debeGuardarEnTablaProcesada() {
+    @DisplayName("procesarGuia: guarda en GUIA_DESPACHO_PROCESADA")
+    void procesarGuia_debeGuardarEnTablaProcesada() {
         GuiaDespachoProcesada procesadaMock = new GuiaDespachoProcesada();
         when(procesadaRepository.save(any(GuiaDespachoProcesada.class))).thenReturn(procesadaMock);
 
-        guiaConsumer.consumirGuiaExitosa(guiaTest);
+        guiaConsumer.procesarGuia(guiaTest);
 
         ArgumentCaptor<GuiaDespachoProcesada> captor = ArgumentCaptor.forClass(GuiaDespachoProcesada.class);
         verify(procesadaRepository, times(1)).save(captor.capture());
@@ -79,12 +79,12 @@ class GuiaConsumerTest {
     }
 
     @Test
-    @DisplayName("consumirGuiaExitosa: asigna fechaProcesamiento al momento actual")
-    void consumirGuiaExitosa_debeAsignarFechaProcesamiento() {
+    @DisplayName("procesarGuia: asigna fechaProcesamiento al momento actual")
+    void procesarGuia_debeAsignarFechaProcesamiento() {
         GuiaDespachoProcesada procesadaMock = new GuiaDespachoProcesada();
         when(procesadaRepository.save(any(GuiaDespachoProcesada.class))).thenReturn(procesadaMock);
 
-        guiaConsumer.consumirGuiaExitosa(guiaTest);
+        guiaConsumer.procesarGuia(guiaTest);
 
         ArgumentCaptor<GuiaDespachoProcesada> captor = ArgumentCaptor.forClass(GuiaDespachoProcesada.class);
         verify(procesadaRepository).save(captor.capture());
@@ -98,39 +98,39 @@ class GuiaConsumerTest {
     }
 
     @Test
-    @DisplayName("consumirGuiaExitosa: si falla DB, lanza RuntimeException (activa DLX)")
-    void consumirGuiaExitosa_siFallaGuardado_debeLanzarExcepcion() {
+    @DisplayName("procesarGuia: si falla DB, lanza RuntimeException (activa DLX)")
+    void procesarGuia_siFallaGuardado_debeLanzarExcepcion() {
         when(procesadaRepository.save(any())).thenThrow(new RuntimeException("DB error"));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                guiaConsumer.consumirGuiaExitosa(guiaTest));
+                guiaConsumer.procesarGuia(guiaTest));
 
         assertTrue(ex.getMessage().contains("GD-202501151030-001"),
                 "El mensaje de error debe contener el código de guía");
     }
 
     @Test
-    @DisplayName("consumirGuiaError: NO guarda en tabla procesada (solo log)")
-    void consumirGuiaError_noDebeGuardarEnBD() {
-        guiaConsumer.consumirGuiaError(guiaTest);
+    @DisplayName("procesarDlq: NO guarda en tabla procesada (solo log)")
+    void procesarDlq_noDebeGuardarEnBD() {
+        guiaConsumer.procesarDlq(guiaTest);
 
         verifyNoInteractions(procesadaRepository);
     }
 
     @Test
-    @DisplayName("consumirGuiaError: no lanza excepción (el mensaje queda en la cola)")
-    void consumirGuiaError_noDebeLanzarExcepcion() {
+    @DisplayName("procesarDlq: no lanza excepción (el mensaje queda en la cola)")
+    void procesarDlq_noDebeLanzarExcepcion() {
         // No debe lanzar excepción al consumir mensaje de error
-        assertDoesNotThrow(() -> guiaConsumer.consumirGuiaError(guiaTest));
+        assertDoesNotThrow(() -> guiaConsumer.procesarDlq(guiaTest));
     }
 
     @Test
-    @DisplayName("consumirGuiaExitosa: usa la misma URL S3 del mensaje original")
-    void consumirGuiaExitosa_debeConservarUrlS3() {
+    @DisplayName("procesarGuia: usa la misma URL S3 del mensaje original")
+    void procesarGuia_debeConservarUrlS3() {
         GuiaDespachoProcesada procesadaMock = new GuiaDespachoProcesada();
         when(procesadaRepository.save(any())).thenReturn(procesadaMock);
 
-        guiaConsumer.consumirGuiaExitosa(guiaTest);
+        guiaConsumer.procesarGuia(guiaTest);
 
         ArgumentCaptor<GuiaDespachoProcesada> captor = ArgumentCaptor.forClass(GuiaDespachoProcesada.class);
         verify(procesadaRepository).save(captor.capture());
