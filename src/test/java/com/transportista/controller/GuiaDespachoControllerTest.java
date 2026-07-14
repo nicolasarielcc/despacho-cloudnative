@@ -293,7 +293,7 @@ class GuiaDespachoControllerTest {
         }
 
         @Test
-        @DisplayName("Rol consulta tiene prohibido el resto de endpoints → 403")
+        @DisplayName("Rol consulta tiene prohibido el resto de endpoints GET → 403")
         @WithMockUser(authorities = "consulta")
         void rolConsulta_noPuedeConsultarTodasLasGuias() throws Exception {
             mockMvc.perform(get("/api/guias").with(csrf()))

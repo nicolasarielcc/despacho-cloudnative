@@ -1,65 +1,20 @@
-# ============================================================
-# GITHUB ACTIONS — Pipeline CI/CD
-# Asignatura: CDY2204 - Desarrollo Cloud Native
-# Sumativa 3
-#
-# Este workflow se gatilla automáticamente con cada push a la rama main.
-# Pasos:
-#   1. Checkout del código (bajarlo al runner)
-#   2. Autenticarse en DockerHub con secrets
-#   3. Construir la imagen Docker
-#   4. Publicar (push) la imagen a DockerHub
-#   5. Conectarse por SSH a EC2 y desplegar el contenedor
-#
-# IMPORTANTE: Configurar los siguientes SECRETS en GitHub:
-#   Settings > Secrets and variables > Actions > New repository secret
-#
-#   Secret                    | Descripción
-#   --------------------------+------------------------------------------
-#   DOCKERHUB_USERNAME        | Tu nombre de usuario en DockerHub
-#   DOCKERHUB_TOKEN           | Token de acceso personal de DockerHub
-#   EC2_HOST                  | IP elástica de la máquina virtual EC2
-#   USER_SERVER               | Usuario SSH de EC2 (generalmente ec2-user)
-#   EC2_SSH_KEY               | Contenido completo de la llave privada .pem
-#   AWS_ACCESS_KEY_ID         | De AWS Academy → AWS Details → AWS CLI
-#   AWS_SECRET_ACCESS_KEY     | De AWS Academy → AWS Details → AWS CLI
-#   AWS_SESSION_TOKEN         | De AWS Academy → AWS Details → AWS CLI
-#
-# RECUERDA: Los valores de AWS cambian cada vez que inicias
-# sesión en AWS Academy. Actualízalos en cada nueva sesión.
-# ============================================================
-
 name: CI/CD Pipeline - Transportista App
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-
-      # ============================================================
-      # PASO 1: Clonar el repositorio en el runner de GitHub Actions
-      # ============================================================
-      - name: Checkout del repositorio
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # ============================================================
-      # PASO 1.5: Generar application.yml con credenciales de AWS
-      # Este archivo se incluye en la imagen Docker para que el
-      # microservicio pueda conectarse a S3 y otros servicios AWS
-      # ============================================================
-      - name: Generar archivo application.yml con credenciales AWS
+      - name: Generar application.yml con credenciales AWS
         run: |
-          mkdir -p src/main/resources
-          cat > src/main/resources/application.yml << 'YAMLEOF'
+          cat > src/main/resources/application.yml << 'EOF'
           cloud:
             aws:
               credentials:
@@ -69,97 +24,62 @@ jobs:
               region:
                 static: us-east-1
               s3:
-                bucket: ${{ vars.S3_BUCKET_NAME || 'guias-despacho-transportista' }}
-          YAMLEOF
-          echo "application.yml generado correctamente"
+                bucket-name: ${{ vars.S3_BUCKET_NAME || 'despacho-grupo3-bucket' }}
+          EOF
 
-      # ============================================================
-      # PASO 2: Iniciar sesión en DockerHub
-      # Usa el token de acceso personal en lugar de contraseña
-      # ============================================================
-      - name: Login en DockerHub
+      - name: Login DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # ============================================================
-      # PASO 3: Construir la imagen Docker
-      # El tag incluye el SHA del commit para trazabilidad
-      # ============================================================
-      - name: Construir imagen Docker
+      - name: Build y Push
         run: |
-          docker build \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:${{ github.sha }} \
-            .
-
-      # ============================================================
-      # PASO 4: Publicar imagen en DockerHub
-      # Se suben dos tags: latest y el SHA del commit
-      # ============================================================
-      - name: Push a DockerHub
-        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:${{ github.sha }}
 
-      # ============================================================
-      # PASO 5: Agregar llave SSH para conectarse a EC2
-      # La llave privada .pem debe estar guardada en el secret EC2_SSH_KEY
-      # ============================================================
-      - name: Configurar llave SSH
+      - name: Configurar SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Deshabilitar verificación de host key (OK para entornos de lab)
           echo "StrictHostKeyChecking no" >> ~/.ssh/config
-          echo "UserKnownHostsFile /dev/null" >> ~/.ssh/config
 
-      # ============================================================
-      # PASO 6: Conectarse a EC2 y desplegar el contenedor
-      # - Descarga la imagen desde DockerHub
-      # - Detiene y elimina el contenedor anterior
-      # - Inicia el nuevo contenedor mapeando el puerto 8080
-      # - Opcionalmente monta EFS si se configuró en semanas anteriores
-      # ============================================================
-      - name: Desplegar en EC2
+      - name: Deploy en EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.USER_SERVER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            # Autenticarse en DockerHub desde EC2
+          ssh -i ~/.ssh/id_rsa ${{ secrets.USER_SERVER }}@${{ secrets.EC2_HOST }} << 'REMOTE'
+            set -e
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-
-            # Descargar la última imagen
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest
 
-            # Detener y eliminar contenedor anterior (si existe)
-            docker stop transportista-app || true
-            docker rm transportista-app || true
+            docker stop transportista-producer transportista-consumer 2>/dev/null || true
+            docker rm transportista-producer transportista-consumer 2>/dev/null || true
 
-            # Iniciar nuevo contenedor
-            # Si tienes EFS montado, descomenta la línea -v:
-            #   -v /mnt/efs:/app/efs
-            docker run -d \
-              --name transportista-app \
-              -p 8080:8080 \
+            docker run -d --name transportista-producer --network rabbitmq -p 8080:8080 \
+              -e SPRING_PROFILES_ACTIVE=dev \
+              -e SPRING_RABBITMQ_HOST=rabbitmq \
+              -e SPRING_RABBITMQ_PORT=5672 \
+              -e SPRING_RABBITMQ_LISTENER_SIMPLE_AUTO_STARTUP=false \
+              -e APP_SECURITY_ENABLED=false \
               --restart unless-stopped \
               ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest
 
-            # Verificar que el contenedor está corriendo
-            docker ps | grep transportista-app
+            docker run -d --name transportista-consumer --network rabbitmq -p 8081:8081 \
+              -e SERVER_PORT=8081 \
+              -e SPRING_PROFILES_ACTIVE=dev \
+              -e SPRING_RABBITMQ_HOST=rabbitmq \
+              -e SPRING_RABBITMQ_PORT=5672 \
+              -e APP_SECURITY_ENABLED=false \
+              --restart unless-stopped \
+              ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest
 
-            echo "=== DESPLIEGUE COMPLETADO ==="
-          EOF
+            echo "=== DEPLOY OK ==="
+          REMOTE
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
-      # ============================================================
-      # PASO 7: Verificar que la aplicación responde (health check)
-      # ============================================================
-      - name: Verificar despliegue
+      - name: Health check
         run: |
-          sleep 10
-          curl -s http://${{ secrets.EC2_HOST }}:8080/actuator/health || echo "Esperando inicio de la app..."
-          sleep 10
-          curl -s http://${{ secrets.EC2_HOST }}:8080/actuator/health || echo "La app aún está iniciando"
+          sleep 15
+          curl -sf http://${{ secrets.EC2_HOST }}:8080/actuator/health && echo "OK"

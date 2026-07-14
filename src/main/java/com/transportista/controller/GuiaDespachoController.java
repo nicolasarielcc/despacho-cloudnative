@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,7 +29,7 @@ import java.util.List;
  *
  * IMPORTANTE:
  * - Todos los endpoints están protegidos con Spring Security + JWT (Azure AD B2C)
- * - Los roles se verifican con @PreAuthorize:
+ * - Los roles se configuran en SecurityConfig.java a nivel HTTP:
  *   - Rol "admin":    acceso a crear, modificar, eliminar, consultar, subir y procesar
  *   - Rol "consulta": acceso SOLO a descargar guías
  * - Estos roles corresponden al custom claim "extension_consultaRole"
@@ -68,7 +67,6 @@ public class GuiaDespachoController {
      * }
      */
     @PostMapping("/guias")
-    @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<GuiaDespachoResponse> crearGuia(
             @Valid @RequestBody GuiaDespachoRequest request) {
         log.info("POST /api/guias — Creando guía de despacho");
@@ -86,7 +84,6 @@ public class GuiaDespachoController {
      * Modifica una guía de despacho existente.
      */
     @PutMapping("/guias/{id}")
-    @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<GuiaDespachoResponse> modificarGuia(
             @PathVariable Long id,
             @Valid @RequestBody GuiaDespachoRequest request) {
@@ -105,7 +102,6 @@ public class GuiaDespachoController {
      * Elimina una guía de despacho específica por su ID.
      */
     @DeleteMapping("/guias/{id}")
-    @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<Void> eliminarGuia(@PathVariable Long id) {
         log.info("DELETE /api/guias/{} — Eliminando guía", id);
         guiaService.eliminarGuia(id);
@@ -133,7 +129,6 @@ public class GuiaDespachoController {
      *   GET /api/guias?fecha=2025-01-15
      */
     @GetMapping("/guias")
-    @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<List<GuiaDespachoResponse>> consultarGuias(
             @RequestParam(required = false) String transportista,
             @RequestParam(required = false) String fecha) {
@@ -157,7 +152,6 @@ public class GuiaDespachoController {
      * La URL de S3 se guarda en el campo urlS3 de la entidad.
      */
     @PostMapping("/guias/{id}/subir-s3")
-    @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<GuiaDespachoResponse> subirGuiaAS3(@PathVariable Long id) {
         log.info("POST /api/guias/{}/subir-s3 — Subiendo guía a S3", id);
         GuiaDespachoResponse response = guiaService.subirGuiaAS3(id);
@@ -174,8 +168,8 @@ public class GuiaDespachoController {
      * Descarga una guía de despacho.
      *
      * Este es el ÚNICO endpoint accesible para el rol "consulta".
-     * El rol "admin" NO tiene acceso a este endpoint (según requerimiento
-     * de la Sumativa 3: "un rol que permita solo usar el endpoint de descargar").
+     * El rol "admin" NO tiene acceso a este endpoint (según requerimiento:
+     * "un rol que permita solo usar el endpoint de descargar guías").
      *
      * La seguridad por ruta se configura en SecurityConfig.java:
      *   .requestMatchers(HttpMethod.GET, &quot;&#47;api&#47;guias&#47;&#42;&#47;descargar&quot;).hasAuthority(&quot;consulta&quot;)
@@ -202,7 +196,6 @@ public class GuiaDespachoController {
      * Esta tabla tiene un campo adicional: fechaProcesamiento.
      */
     @PostMapping("/cola/procesar-guias")
-    @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<List<GuiaDespachoProcesada>> procesarColaYGuardar() {
         log.info("POST /api/cola/procesar-guias — Procesando cola 1 y guardando en tabla nueva");
         List<GuiaDespachoProcesada> procesadas = guiaService.procesarColaYGuardar();

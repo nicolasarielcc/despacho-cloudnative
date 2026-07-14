@@ -1,3 +1,10 @@
 .env
 target/
 *.log
+*.pem
+lambda-authorizer/package/
+lambda-authorizer/authorizer.zip
+**/contexto-sesion.md
+**/azure-b2c-config.md
+**/*secret*
+**/*credential*
