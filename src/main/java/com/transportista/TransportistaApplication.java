@@ -4,11 +4,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Sistema de Gestión de Pedidos y Generación de Guías de Despacho.
+ * Sistema de Gestión de Cursos en Línea.
  *
- * Microservicio Cloud Native que integra:
- * - RabbitMQ para mensajería asíncrona (colas)
- * - AWS S3 para almacenamiento de archivos
+ * Plataforma Cloud Native que integra:
+ * - RabbitMQ para mensajería asíncrona (colas de inscripciones)
+ * - AWS S3 para almacenamiento de material de cursos
  * - AWS API Gateway para exposición de endpoints
  * - Azure AD B2C para autenticación y autorización (IDaaS)
  * - Spring Security para securitización del backend

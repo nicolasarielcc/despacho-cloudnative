@@ -17,61 +17,58 @@
 -- SECUENCIAS
 -- ============================================================
 
--- Secuencia para GUIA_DESPACHO (tabla principal)
-CREATE SEQUENCE SEQ_GUIA_DESPACHO
+-- Secuencia para CURSO (tabla principal)
+CREATE SEQUENCE SEQ_CURSO
     START WITH 1
     INCREMENT BY 1
     NOCACHE
     NOCYCLE;
 
--- Secuencia para GUIA_DESPACHO_PROCESADA (tabla nueva, distinta)
-CREATE SEQUENCE SEQ_GUIA_PROCESADA
+-- Secuencia para INSCRIPCION (tabla nueva, distinta)
+CREATE SEQUENCE SEQ_INSCRIPCION
     START WITH 1
     INCREMENT BY 1
     NOCACHE
     NOCYCLE;
 
 -- ============================================================
--- TABLA PRINCIPAL: GUIA_DESPACHO
--- Almacena las guías de despacho creadas desde el backend
+-- TABLA PRINCIPAL: CURSO
+-- Almacena los cursos creados desde el backend
 -- ============================================================
 
-CREATE TABLE GUIA_DESPACHO (
+CREATE TABLE CURSO (
     ID              NUMBER(19)      NOT NULL PRIMARY KEY,
-    CODIGO_GUIA     VARCHAR2(50)    NOT NULL UNIQUE,
-    TRANSPORTISTA   VARCHAR2(200)   NOT NULL,
-    FECHA_EMISION   TIMESTAMP       NOT NULL,
-    ORIGEN          VARCHAR2(300)   NOT NULL,
-    DESTINO         VARCHAR2(300)   NOT NULL,
-    DESCRIPCION_CARGA VARCHAR2(1000),
-    PESO_KG         NUMBER(10,2),
+    CODIGO_CURSO    VARCHAR2(50)    NOT NULL UNIQUE,
+    NOMBRE          VARCHAR2(200)   NOT NULL,
+    INSTRUCTOR      VARCHAR2(200)   NOT NULL,
+    DESCRIPCION     VARCHAR2(1000),
+    CREDITOS        NUMBER(3),
+    FECHA_INICIO    TIMESTAMP       NOT NULL,
+    FECHA_FIN       TIMESTAMP       NOT NULL,
     ESTADO          VARCHAR2(20)    NOT NULL,
     URL_S3          VARCHAR2(500),
     FECHA_CREACION  TIMESTAMP       NOT NULL
 );
 
-COMMENT ON TABLE GUIA_DESPACHO IS 'Guías de despacho del sistema transportista';
-COMMENT ON COLUMN GUIA_DESPACHO.ESTADO IS 'PENDIENTE | ENVIADA | CON_ERROR';
+COMMENT ON TABLE CURSO IS 'Cursos del sistema cursosonline';
+COMMENT ON COLUMN CURSO.ESTADO IS 'PENDIENTE | ACTIVO | FINALIZADO | CON_ERROR';
 
 -- ============================================================
--- TABLA NUEVA: GUIA_DESPACHO_PROCESADA
--- Almacena guías procesadas desde la cola RabbitMQ
+-- TABLA NUEVA: INSCRIPCION
+-- Almacena inscripciones procesadas desde la cola RabbitMQ
 -- (TABLA DISTINTA a la usada en sumativas anteriores)
 -- ============================================================
 
-CREATE TABLE GUIA_DESPACHO_PROCESADA (
+CREATE TABLE INSCRIPCION (
     ID                  NUMBER(19)      NOT NULL PRIMARY KEY,
-    CODIGO_GUIA         VARCHAR2(50)    NOT NULL,
-    TRANSPORTISTA       VARCHAR2(200),
-    FECHA_EMISION       TIMESTAMP,
-    ORIGEN              VARCHAR2(300),
-    DESTINO             VARCHAR2(300),
-    DESCRIPCION_CARGA   VARCHAR2(1000),
-    PESO_KG             NUMBER(10,2),
-    URL_S3              VARCHAR2(500),
-    FECHA_PROCESAMIENTO TIMESTAMP       NOT NULL,
-    ESTADO              VARCHAR2(20)
+    CODIGO_CURSO        VARCHAR2(50)    NOT NULL,
+    ESTUDIANTE          VARCHAR2(200),
+    EMAIL_ESTUDIANTE    VARCHAR2(300),
+    FECHA_INSCRIPCION   TIMESTAMP,
+    CALIFICACION        NUMBER(3,1),
+    ESTADO              VARCHAR2(20),
+    FECHA_PROCESAMIENTO TIMESTAMP       NOT NULL
 );
 
-COMMENT ON TABLE GUIA_DESPACHO_PROCESADA IS 'Guías procesadas desde cola RabbitMQ (tabla NUEVA)';
-COMMENT ON COLUMN GUIA_DESPACHO_PROCESADA.FECHA_PROCESAMIENTO IS 'Fecha en que se procesó desde la cola (campo NUEVO)';
+COMMENT ON TABLE INSCRIPCION IS 'Inscripciones procesadas desde cola RabbitMQ (tabla NUEVA)';
+COMMENT ON COLUMN INSCRIPCION.FECHA_PROCESAMIENTO IS 'Fecha en que se procesó desde la cola (campo NUEVO)';

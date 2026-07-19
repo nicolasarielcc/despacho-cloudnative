@@ -43,7 +43,7 @@ class TransportistaApplicationTests {
     @DisplayName("Criterio 2: Bean colaPrincipal está configurado")
     void rabbitMQ_colaPrincipal_estaConfigurada() {
         Queue cola = context.getBean("colaPrincipal", Queue.class);
-        assertNotNull(cola, "La cola de exitosas debe existir");
+        assertNotNull(cola, "La cola principal debe existir");
         assertEquals(RabbitMQConfig.QUEUE_PRINCIPAL, cola.getName(), "Nombre correcto de cola");
         assertTrue(cola.isDurable(), "La cola debe ser durable");
     }
@@ -52,7 +52,7 @@ class TransportistaApplicationTests {
     @DisplayName("Criterio 2: Bean colaDlq está configurado")
     void rabbitMQ_colaDlq_estaConfigurada() {
         Queue cola = context.getBean("colaDlq", Queue.class);
-        assertNotNull(cola, "La cola de errores debe existir");
+        assertNotNull(cola, "La cola dlq debe existir");
         assertEquals(RabbitMQConfig.QUEUE_ERROR_DLQ, cola.getName(), "Nombre correcto de cola");
     }
 
@@ -65,20 +65,20 @@ class TransportistaApplicationTests {
     }
 
     @Test
-    @DisplayName("Criterio 2: Binding exitosa existe (cola-exitosa ← exchange)")
+    @DisplayName("Criterio 2: Binding principal existe (cola-cursos-principal ← exchange-cursos)")
     void rabbitMQ_bindingPrincipal_existe() {
         Binding binding = context.getBean("bindingPrincipal", Binding.class);
-        assertNotNull(binding, "Binding de exitosas debe existir");
+        assertNotNull(binding, "Binding principal debe existir");
         assertEquals(RabbitMQConfig.QUEUE_PRINCIPAL, binding.getDestination(), "Destino correcto");
         assertEquals(RabbitMQConfig.EXCHANGE, binding.getExchange(), "Exchange correcto");
         assertEquals(RabbitMQConfig.ROUTING_KEY_PRINCIPAL, binding.getRoutingKey(), "Routing key correcta");
     }
 
     @Test
-    @DisplayName("Criterio 2: Binding error existe (cola-error ← exchange)")
+    @DisplayName("Criterio 2: Binding dlq existe (cola-cursos-dlq ← dlx-exchange)")
     void rabbitMQ_bindingDlq_existe() {
         Binding binding = context.getBean("bindingDlq", Binding.class);
-        assertNotNull(binding, "Binding de error debe existir");
+        assertNotNull(binding, "Binding dlq debe existir");
         assertEquals(RabbitMQConfig.QUEUE_ERROR_DLQ, binding.getDestination(), "Destino correcto");
         assertEquals(RabbitMQConfig.DLX_EXCHANGE, binding.getExchange(), "Exchange DLX correcto");
         assertEquals(RabbitMQConfig.DLX_ROUTING_KEY, binding.getRoutingKey(), "Routing key correcta");

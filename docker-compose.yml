@@ -26,7 +26,7 @@ services:
 
   producer:
     build: .
-    container_name: transportista-producer
+    container_name: cursosonline-producer
     ports:
       - "8080:8080"
     environment:
@@ -43,7 +43,7 @@ services:
 
   consumer:
     build: .
-    container_name: transportista-consumer
+    container_name: cursosonline-consumer
     ports:
       - "8081:8081"
     environment:

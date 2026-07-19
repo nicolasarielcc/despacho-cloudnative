@@ -12,15 +12,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String QUEUE_PRINCIPAL = "cola-guias-principal";
+    public static final String QUEUE_PRINCIPAL = "cola-cursos-principal";
 
-    public static final String QUEUE_ERROR_DLQ = "cola-guias-dlq";
+    public static final String QUEUE_ERROR_DLQ = "cola-cursos-dlq";
 
-    public static final String EXCHANGE = "exchange-guias";
+    public static final String EXCHANGE = "exchange-cursos";
 
-    public static final String ROUTING_KEY_PRINCIPAL = "guia.nueva";
+    public static final String ROUTING_KEY_PRINCIPAL = "curso.nueva";
 
-    public static final String ROUTING_KEY_ERROR = "guia.error";
+    public static final String ROUTING_KEY_ERROR = "curso.error";
 
     public static final String DLX_EXCHANGE = "dlx-exchange";
 

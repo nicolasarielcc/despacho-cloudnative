@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  *   2. MODO PRODUCCIÓN (app.security.enabled=true):
  *      - Valida tokens JWT emitidos por Azure AD B2C
  *      - Extrae roles del custom claim "extension_consultaRole"
- *      - Protege endpoints según roles admin/consulta
+ *      - Protege endpoints según roles instructor/estudiante
  *
  * IMPORTANTE para producción:
  *   Configurar en application.properties:
@@ -77,11 +77,18 @@ public class SecurityConfig {
                     // Endpoints públicos (health check de Actuator)
                     .requestMatchers("/actuator/health").permitAll()
 
-                    // Solo rol consulta puede descargar guías
-                    .requestMatchers(HttpMethod.GET, "/api/guias/*/descargar").hasAuthority("consulta")
+                    // Solo rol estudiante puede descargar cursos
+                    .requestMatchers(HttpMethod.GET, "/api/cursos/*/descargar").hasAuthority("estudiante")
 
-                    // Solo rol admin puede acceder al resto de endpoints API
-                    .requestMatchers("/api/**").hasAuthority("admin")
+                    // Estudiantes pueden ver sus inscripciones
+                    .requestMatchers(HttpMethod.GET, "/api/inscripciones").hasAuthority("estudiante")
+                    .requestMatchers(HttpMethod.GET, "/api/inscripciones/*").hasAuthority("estudiante")
+
+                    // Estudiantes pueden inscribirse
+                    .requestMatchers(HttpMethod.POST, "/api/inscripciones").hasAuthority("estudiante")
+
+                    // Solo rol instructor puede acceder al resto de endpoints API
+                    .requestMatchers("/api/**").hasAuthority("instructor")
 
                     .anyRequest().authenticated()
                 )
@@ -108,12 +115,12 @@ public class SecurityConfig {
      * Convierte los claims del JWT en autoridades de Spring Security.
      *
      * Lee el custom claim "extension_consultaRole" del token JWT
-     * y lo mapea a las autoridades "admin" y/o "consulta".
+     * y lo mapea a las autoridades "instructor" y/o "estudiante".
      *
      * Configuración requerida en Azure AD B2C:
      * 1. User Attributes → Add → extension_consultaRole (String)
      * 2. User Flows → incluir extension_consultaRole en "Return claims"
-     * 3. Al crear usuarios, asignar "admin" o "consulta" como valor
+     * 3. Al crear usuarios, asignar un valor que contenga "admin" (instructor) o "consulta" (estudiante)
      */
     @Bean
     @SuppressWarnings("unused")
@@ -144,10 +151,10 @@ public class SecurityConfig {
         String roleLower = roleClaim.toLowerCase();
 
         if (roleLower.contains("admin")) {
-            authorities.add(new SimpleGrantedAuthority("admin"));
+            authorities.add(new SimpleGrantedAuthority("instructor"));
         }
         if (roleLower.contains("consulta")) {
-            authorities.add(new SimpleGrantedAuthority("consulta"));
+            authorities.add(new SimpleGrantedAuthority("estudiante"));
         }
 
         logJwtInfo(jwt, authorities);

@@ -6,7 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,6 +34,9 @@ class SecurityConfigIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private JwtAuthenticationConverter converter;
+
     @Test
     @DisplayName("El contexto Spring Boot carga correctamente con perfil test")
     void contextLoads() {
@@ -42,8 +48,8 @@ class SecurityConfigIntegrationTest {
     class ExtraccionAutoridades {
 
         @Test
-        @DisplayName("JWT con extension_consultaRole='admin' → autoridad admin")
-        void jwtConClaimAdmin_debeTenerAutoridadAdmin() {
+        @DisplayName("JWT con extension_consultaRole='admin' → autoridad instructor")
+        void jwtConClaimAdmin_debeTenerAutoridadInstructor() {
             Jwt jwt = Jwt.withTokenValue("mock-token")
                     .header("alg", "RS256")
                     .claim("extension_consultaRole", "admin")
@@ -53,13 +59,15 @@ class SecurityConfigIntegrationTest {
                     .expiresAt(Instant.now().plusSeconds(3600))
                     .build();
 
-            assert jwt.getClaimAsString("extension_consultaRole").equals("admin");
-            assert jwt.getSubject().equals("user123");
+            Authentication auth = converter.convert(jwt);
+            assert auth.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch("instructor"::equals);
         }
 
         @Test
-        @DisplayName("JWT con extension_consultaRole='consulta' → autoridad consulta")
-        void jwtConClaimConsulta_debeTenerAutoridadConsulta() {
+        @DisplayName("JWT con extension_consultaRole='consulta' → autoridad estudiante")
+        void jwtConClaimConsulta_debeTenerAutoridadEstudiante() {
             Jwt jwt = Jwt.withTokenValue("mock-token")
                     .header("alg", "RS256")
                     .claim("extension_consultaRole", "consulta")
@@ -69,11 +77,14 @@ class SecurityConfigIntegrationTest {
                     .expiresAt(Instant.now().plusSeconds(3600))
                     .build();
 
-            assert jwt.getClaimAsString("extension_consultaRole").equals("consulta");
+            Authentication auth = converter.convert(jwt);
+            assert auth.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch("estudiante"::equals);
         }
 
         @Test
-        @DisplayName("JWT sin claim extension_consultaRole → sin autoridades")
+        @DisplayName("JWT sin claim extension_consultaRole → autoridades vacías")
         void jwtSinClaim_debeTenerAutoridadesVacias() {
             Jwt jwt = Jwt.withTokenValue("mock-token")
                     .header("alg", "RS256")
@@ -83,8 +94,8 @@ class SecurityConfigIntegrationTest {
                     .expiresAt(Instant.now().plusSeconds(3600))
                     .build();
 
-            String roleClaim = jwt.getClaimAsString("extension_consultaRole");
-            assert roleClaim == null;
+            Authentication auth = converter.convert(jwt);
+            assert auth.getAuthorities().isEmpty();
         }
     }
 }

@@ -22,7 +22,7 @@ public class S3Service {
     private final String bucketName;
 
     public String subirGuia(String transportista, String codigoGuia, byte[] contenido) {
-        String ruta = String.format("guias/%s/%d/%s/guia-%s.pdf",
+        String ruta = String.format("cursos/%s/%d/%s/curso-%s.pdf",
                 transportista.toLowerCase().replace(" ", "_"),
                 LocalDateTime.now().getYear(),
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM")),
@@ -36,7 +36,7 @@ public class S3Service {
                     .build(), RequestBody.fromBytes(contenido));
 
             String url = String.format("https://%s.s3.amazonaws.com/%s", bucketName, ruta);
-            log.info("Guia subida a S3: {}", url);
+            log.info("Curso subido a S3: {}", url);
             return url;
         } catch (S3Exception e) {
             log.error("Error al subir a S3: {}", e.awsErrorDetails().errorMessage());
@@ -45,7 +45,7 @@ public class S3Service {
     }
 
     public byte[] descargarGuia(String codigoGuia) {
-        String prefijo = String.format("guias/");
+        String prefijo = String.format("cursos/");
         ListObjectsV2Response listResponse = s3Client.listObjectsV2(
                 ListObjectsV2Request.builder()
                         .bucket(bucketName)
@@ -62,18 +62,18 @@ public class S3Service {
                      ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
                     response.transferTo(baos);
-                    log.info("Guia descargada de S3: {}", obj.key());
+                    log.info("Curso descargado de S3: {}", obj.key());
                     return baos.toByteArray();
                 } catch (IOException e) {
                     throw new RuntimeException("Error descargando archivo de S3", e);
                 }
             }
         }
-        throw new RuntimeException("Archivo no encontrado en S3 para guia: " + codigoGuia);
+        throw new RuntimeException("Archivo no encontrado en S3 para curso: " + codigoGuia);
     }
 
     public void eliminarGuia(String codigoGuia) {
-        String prefijo = String.format("guias/");
+        String prefijo = String.format("cursos/");
         ListObjectsV2Response listResponse = s3Client.listObjectsV2(
                 ListObjectsV2Request.builder()
                         .bucket(bucketName)
@@ -86,15 +86,15 @@ public class S3Service {
                         .bucket(bucketName)
                         .key(obj.key())
                         .build());
-                log.info("Guia eliminada de S3: {}", obj.key());
+                log.info("Archivo eliminado de S3: {}", obj.key());
                 return;
             }
         }
-        log.warn("No se encontro archivo en S3 para guia: {}", codigoGuia);
+        log.warn("No se encontro archivo en S3 para curso: {}", codigoGuia);
     }
 
     public List<String> listarArchivos(String transportista) {
-        String prefijo = String.format("guias/%s/", transportista.toLowerCase().replace(" ", "_"));
+        String prefijo = String.format("cursos/%s/", transportista.toLowerCase().replace(" ", "_"));
         return s3Client.listObjectsV2(ListObjectsV2Request.builder()
                         .bucket(bucketName)
                         .prefix(prefijo)

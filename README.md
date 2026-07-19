@@ -1,8 +1,17 @@
-# Sistema de Gestión de Guías de Despacho
+# Plataforma de Gestión de Cursos en Línea
 
 **Asignatura:** CDY2204 — Desarrollo Cloud Native (Duoc UC)
 
-**Sumativa 3 — Semana 8:** Desarrollando sistema asíncrono con la utilización de colas
+**Evaluación Final Transversal — Semana 9**
+
+Plataforma Cloud Native para gestión de cursos en línea con:
+- Microservicios Spring Boot (creación de cursos, inscripción de estudiantes, calificaciones)
+- Colas RabbitMQ para procesamiento asíncrono de inscripciones
+- Azure AD B2C como Identity as a Service (roles: instructor / estudiante)
+- AWS S3 para almacenamiento de material de cursos
+- AWS API Gateway para gestión de endpoints
+- CI/CD con GitHub Actions → Docker Hub → AWS EC2
+- Base de datos Oracle Cloud
 
 ---
 

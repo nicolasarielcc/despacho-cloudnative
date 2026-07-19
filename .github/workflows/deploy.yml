@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Transportista App
+name: CI/CD Pipeline - CursosOnline App
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
               region:
                 static: us-east-1
               s3:
-                bucket-name: ${{ vars.S3_BUCKET_NAME || 'despacho-grupo3-bucket' }}
+                bucket-name: ${{ vars.S3_BUCKET_NAME || 'cursos-grupo3-bucket' }}
           EOF
 
       - name: Login DockerHub
@@ -35,8 +35,8 @@ jobs:
 
       - name: Build y Push
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/cursosonline-app:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/cursosonline-app:latest
 
       - name: Configurar SSH
         run: |
@@ -50,28 +50,28 @@ jobs:
           ssh -i ~/.ssh/id_rsa ${{ secrets.USER_SERVER }}@${{ secrets.EC2_HOST }} << 'REMOTE'
             set -e
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/cursosonline-app:latest
 
-            docker stop transportista-producer transportista-consumer 2>/dev/null || true
-            docker rm transportista-producer transportista-consumer 2>/dev/null || true
+            docker stop cursosonline-producer cursosonline-consumer 2>/dev/null || true
+            docker rm cursosonline-producer cursosonline-consumer 2>/dev/null || true
 
-            docker run -d --name transportista-producer --network rabbitmq -p 8080:8080 \
+            docker run -d --name cursosonline-producer --network rabbitmq -p 8080:8080 \
               -e SPRING_PROFILES_ACTIVE=dev \
               -e SPRING_RABBITMQ_HOST=rabbitmq \
               -e SPRING_RABBITMQ_PORT=5672 \
               -e SPRING_RABBITMQ_LISTENER_SIMPLE_AUTO_STARTUP=false \
               -e APP_SECURITY_ENABLED=false \
               --restart unless-stopped \
-              ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest
+              ${{ secrets.DOCKERHUB_USERNAME }}/cursosonline-app:latest
 
-            docker run -d --name transportista-consumer --network rabbitmq -p 8081:8081 \
+            docker run -d --name cursosonline-consumer --network rabbitmq -p 8081:8081 \
               -e SERVER_PORT=8081 \
               -e SPRING_PROFILES_ACTIVE=dev \
               -e SPRING_RABBITMQ_HOST=rabbitmq \
               -e SPRING_RABBITMQ_PORT=5672 \
               -e APP_SECURITY_ENABLED=false \
               --restart unless-stopped \
-              ${{ secrets.DOCKERHUB_USERNAME }}/transportista-app:latest
+              ${{ secrets.DOCKERHUB_USERNAME }}/cursosonline-app:latest
 
             echo "=== DEPLOY OK ==="
           REMOTE
