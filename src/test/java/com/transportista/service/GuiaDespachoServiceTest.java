@@ -87,23 +87,17 @@ class GuiaDespachoServiceTest {
     class CrearGuiaTests {
 
         @Test
-        @DisplayName("Guarda en BD y envía a cola exitosa cuando todo funciona")
+        @DisplayName("Guarda en BD y envía a cola principal cuando todo funciona")
         void debeGuardarYEnviarAColaExitosa() {
             when(guiaRepository.save(any(GuiaDespacho.class))).thenReturn(guiaGuardada);
             doNothing().when(guiaProducer).enviarAColaPrincipal(any());
 
             GuiaDespachoResponse response = service.crearGuia(request);
 
-            // Verificar que guardó 2 veces: PENDIENTE y luego ENVIADA
-            verify(guiaRepository, times(2)).save(any(GuiaDespacho.class));
-
-            // Verificar que envió a la cola de exitosas
+            verify(guiaRepository, times(1)).save(any(GuiaDespacho.class));
             verify(guiaProducer, times(1)).enviarAColaPrincipal(any());
 
-            // NO debe enviar a cola de error
-            verify(guiaProducer, never()).enviarAColaPrincipal(any());
-
-            assertEquals(EstadoGuia.ENVIADA, response.getEstado());
+            assertEquals(EstadoGuia.PENDIENTE, response.getEstado());
             assertEquals("Juan Perez", response.getTransportista());
             assertEquals("Santiago", response.getOrigen());
             assertEquals("Valparaíso", response.getDestino());
@@ -112,18 +106,17 @@ class GuiaDespachoServiceTest {
         }
 
         @Test
-        @DisplayName("Si falla el envío a cola, guarda como CON_ERROR y envía a cola error")
-        void siFallaEnvio_guardaComoError_yEnviaAColaError() {
+        @DisplayName("Si falla el envío a cola, la excepción se propaga")
+        void siFallaEnvio_propagaExcepcion() {
             when(guiaRepository.save(any(GuiaDespacho.class))).thenReturn(guiaGuardada);
             doThrow(new RuntimeException("RabbitMQ caído"))
                     .when(guiaProducer).enviarAColaPrincipal(any());
-            doNothing().when(guiaProducer).enviarAColaPrincipal(any());
 
-            GuiaDespachoResponse response = service.crearGuia(request);
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                    () -> service.crearGuia(request));
 
+            assertEquals("RabbitMQ caído", ex.getMessage());
             verify(guiaProducer, times(1)).enviarAColaPrincipal(any());
-            verify(guiaProducer, times(1)).enviarAColaPrincipal(any());
-            assertEquals(EstadoGuia.CON_ERROR, guiaGuardada.getEstado());
         }
 
         @Test

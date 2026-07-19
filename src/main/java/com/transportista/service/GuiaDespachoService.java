@@ -10,7 +10,6 @@ import com.transportista.repository.GuiaDespachoProcesadaRepository;
 import com.transportista.repository.GuiaDespachoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -166,6 +165,15 @@ public class GuiaDespachoService {
     public GuiaDespachoResponse obtenerPorId(Long id) {
         GuiaDespacho guia = guiaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Guia no encontrada con id: " + id));
+        return toResponse(guia);
+    }
+
+    public GuiaDespachoResponse consumirMensajeDeCola() {
+        log.info("Consumiendo mensaje directamente de la cola principal (HTTP pull)");
+        GuiaDespacho guia = guiaProducer.consumirDeColaPrincipal();
+        if (guia == null) {
+            return null;
+        }
         return toResponse(guia);
     }
 

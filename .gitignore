@@ -8,3 +8,6 @@ lambda-authorizer/authorizer.zip
 **/azure-b2c-config.md
 **/*secret*
 **/*credential*
+
+# Windows ADS junk files
+*Zone.Identifier

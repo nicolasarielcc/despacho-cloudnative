@@ -80,8 +80,8 @@ class TransportistaApplicationTests {
         Binding binding = context.getBean("bindingDlq", Binding.class);
         assertNotNull(binding, "Binding de error debe existir");
         assertEquals(RabbitMQConfig.QUEUE_ERROR_DLQ, binding.getDestination(), "Destino correcto");
-        assertEquals(RabbitMQConfig.EXCHANGE, binding.getExchange(), "Exchange correcto");
-        assertEquals(RabbitMQConfig.ROUTING_KEY_ERROR, binding.getRoutingKey(), "Routing key correcta");
+        assertEquals(RabbitMQConfig.DLX_EXCHANGE, binding.getExchange(), "Exchange DLX correcto");
+        assertEquals(RabbitMQConfig.DLX_ROUTING_KEY, binding.getRoutingKey(), "Routing key correcta");
     }
 
     @Test

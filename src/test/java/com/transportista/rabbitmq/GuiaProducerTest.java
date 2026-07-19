@@ -90,18 +90,18 @@ class GuiaProducerTest {
     }
 
     @Test
-    @DisplayName("enviarAColaPrincipal: usa exchange-guias y routing key guia.error")
-    void enviarAColaPrincipal_debeUsarExchangeYRkCorrectos() {
-        guiaProducer.enviarAColaPrincipal(guiaTest);
+    @DisplayName("enviarAColaDlq: usa dlx-exchange y routing key dlx-routing-key")
+    void enviarAColaDlq_debeUsarExchangeYRkCorrectos() {
+        guiaProducer.enviarAColaDlq(guiaTest);
 
         ArgumentCaptor<String> routingKeyCaptor = ArgumentCaptor.forClass(String.class);
         verify(rabbitTemplate, times(1)).convertAndSend(
-                eq(RabbitMQConfig.EXCHANGE),
+                eq(RabbitMQConfig.DLX_EXCHANGE),
                 routingKeyCaptor.capture(),
                 eq(guiaTest));
 
-        assertEquals(RabbitMQConfig.ROUTING_KEY_ERROR, routingKeyCaptor.getValue(),
-                "La routing key debe ser 'guia.error'");
+        assertEquals(RabbitMQConfig.DLX_ROUTING_KEY, routingKeyCaptor.getValue(),
+                "La routing key debe ser 'dlx-routing-key'");
     }
 
     @Test
@@ -112,22 +112,22 @@ class GuiaProducerTest {
 
         verify(rabbitTemplate, times(1)).convertAndSend(
                 eq(RabbitMQConfig.EXCHANGE),
-                eq(RabbitMQConfig.ROUTING_KEY_ERROR),
+                eq(RabbitMQConfig.ROUTING_KEY_PRINCIPAL),
                 eq(guiaTest));
     }
 
     @Test
-    @DisplayName("No debería mezclar routing keys entre exitosa y error")
+    @DisplayName("No debería mezclar routing keys entre principal y DLQ")
     void noDebeMezclarRoutingKeys() {
         guiaProducer.enviarAColaPrincipal(guiaTest);
         verify(rabbitTemplate, never()).convertAndSend(
-                eq(RabbitMQConfig.EXCHANGE),
-                eq(RabbitMQConfig.ROUTING_KEY_ERROR),
+                eq(RabbitMQConfig.DLX_EXCHANGE),
+                eq(RabbitMQConfig.DLX_ROUTING_KEY),
                 any(Object.class));
 
         clearInvocations(rabbitTemplate);
 
-        guiaProducer.enviarAColaPrincipal(guiaTest);
+        guiaProducer.enviarAColaDlq(guiaTest);
         verify(rabbitTemplate, never()).convertAndSend(
                 eq(RabbitMQConfig.EXCHANGE),
                 eq(RabbitMQConfig.ROUTING_KEY_PRINCIPAL),

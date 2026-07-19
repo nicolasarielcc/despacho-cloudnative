@@ -201,4 +201,20 @@ public class GuiaDespachoController {
         List<GuiaDespachoProcesada> procesadas = guiaService.procesarColaYGuardar();
         return ResponseEntity.ok(procesadas);
     }
+
+    // ================================================================
+    // ENDPOINT ADICIONAL: CONSUMIR MENSAJE DE COLA PRINCIPAL (HTTP PULL)
+    // GET /api/cola/consumir-mensaje
+    // Rol requerido: admin
+    // ================================================================
+
+    @GetMapping("/cola/consumir-mensaje")
+    public ResponseEntity<GuiaDespachoResponse> consumirMensajeDeCola() {
+        log.info("GET /api/cola/consumir-mensaje — Consumiendo mensaje de cola principal via HTTP");
+        GuiaDespachoResponse response = guiaService.consumirMensajeDeCola();
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(response);
+    }
 }

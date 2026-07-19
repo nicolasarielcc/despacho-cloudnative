@@ -2,7 +2,6 @@ package com.transportista.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -16,7 +15,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class S3Service {
 
