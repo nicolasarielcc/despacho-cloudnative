@@ -41,8 +41,9 @@ jobs:
       - name: Configurar SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          ssh-keygen -p -m PEM -P "" -N "" -f ~/.ssh/id_rsa 2>/dev/null || true
           echo "StrictHostKeyChecking no" >> ~/.ssh/config
 
       - name: Deploy en EC2
