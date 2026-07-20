@@ -24,7 +24,7 @@ jobs:
               region:
                 static: us-east-1
               s3:
-                bucket-name: ${{ vars.S3_BUCKET_NAME || 'cursos-grupo3-bucket' }}
+                bucket-name: ${{ vars.S3_BUCKET_NAME || 'despacho-grupo3-bucket' }}
           EOF
 
       - name: Login DockerHub

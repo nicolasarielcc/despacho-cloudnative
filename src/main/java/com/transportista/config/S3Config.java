@@ -27,7 +27,7 @@ public class S3Config {
     @Value("${cloud.aws.region.static:us-east-1}")
     private String region;
 
-    @Value("${cloud.aws.s3.bucket-name:cursos-grupo3-bucket}")
+    @Value("${cloud.aws.s3.bucket-name:despacho-grupo3-bucket}")
     private String bucketName;
 
     @Bean

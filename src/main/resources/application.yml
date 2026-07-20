@@ -7,7 +7,7 @@ cloud:
     region:
       static: ${AWS_REGION:us-east-1}
     s3:
-      bucket-name: ${S3_BUCKET_NAME:cursos-grupo3-bucket}
+      bucket-name: ${S3_BUCKET_NAME:despacho-grupo3-bucket}
 
 app:
   security:
