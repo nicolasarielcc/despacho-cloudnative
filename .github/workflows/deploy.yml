@@ -1,86 +1,125 @@
-name: CI/CD Pipeline - CursosOnline App
+name: Build and Push Docker Image
 
-on:
+on: 
   push:
-    branches: [main]
+    branches:
+      - main   
+  pull_request:
+    branches:
+      - main
 
-jobs:
-  build-and-deploy:
+jobs: 
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Generar application.yml con credenciales AWS
-        run: |
-          cat > src/main/resources/application.yml << 'EOF'
-          cloud:
-            aws:
-              credentials:
-                access-key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                secret-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-              region:
-                static: us-east-1
-              s3:
-                bucket-name: ${{ vars.S3_BUCKET_NAME || 'despacho-grupo3-bucket' }}
-          EOF
-
-      - name: Login DockerHub
-        uses: docker/login-action@v3
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2 
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build y Push
+      - name: Build Docker Image
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/cursosonline-app:latest .
+
+      - name: Push Docker Image
+        run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/cursosonline-app:latest
 
-      - name: Configurar SSH
+      - name: Set up AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      - name: Add SSH Key
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keygen -p -m PEM -P "" -N "" -f ~/.ssh/id_rsa 2>/dev/null || true
-          echo "StrictHostKeyChecking no" >> ~/.ssh/config
 
-      - name: Deploy en EC2
+      - name: SSH commands to deploy
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.USER_SERVER }}@${{ secrets.EC2_HOST }} << 'REMOTE'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.USER_SERVER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/cursosonline-app:latest
-
-            docker stop cursosonline-producer cursosonline-consumer 2>/dev/null || true
-            docker rm cursosonline-producer cursosonline-consumer 2>/dev/null || true
-
-            docker run -d --name cursosonline-producer --network rabbitmq -p 8080:8080 \
+            
+            echo "=== Login DockerHub ==="
+            echo $DOCKERHUB_TOKEN | docker login -u $DOCKERHUB_USER --password-stdin
+            
+            echo "=== Pull images ==="
+            docker pull $DOCKERHUB_USER/cursosonline-app:latest
+            docker pull rabbitmq:3-management
+            
+            echo "=== Setup network ==="
+            docker network create cloud-network || true
+            
+            echo "=== Deploy RabbitMQ ==="
+            docker stop rabbitmq || true
+            docker rm rabbitmq || true
+            docker run -d \
+              --name rabbitmq \
+              --network cloud-network \
+              --restart unless-stopped \
+              -p 5672:5672 \
+              -p 15672:15672 \
+              rabbitmq:3-management
+            
+            echo "=== Deploy Producer (port 8080) ==="
+            docker stop cursosonline-producer || true
+            docker rm cursosonline-producer || true
+            docker run -d \
+              --name cursosonline-producer \
+              --network cloud-network \
+              -p 8080:8080 \
               -e SPRING_PROFILES_ACTIVE=dev \
               -e SPRING_RABBITMQ_HOST=rabbitmq \
               -e SPRING_RABBITMQ_PORT=5672 \
               -e SPRING_RABBITMQ_LISTENER_SIMPLE_AUTO_STARTUP=false \
               -e APP_SECURITY_ENABLED=false \
+              -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY" \
+              -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_KEY" \
+              -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
+              -e S3_BUCKET_NAME="$S3_BUCKET" \
               --restart unless-stopped \
-              ${{ secrets.DOCKERHUB_USERNAME }}/cursosonline-app:latest
-
-            docker run -d --name cursosonline-consumer --network rabbitmq -p 8081:8081 \
+              $DOCKERHUB_USER/cursosonline-app:latest
+            
+            echo "=== Deploy Consumer (port 8081) ==="
+            docker stop cursosonline-consumer || true
+            docker rm cursosonline-consumer || true
+            docker run -d \
+              --name cursosonline-consumer \
+              --network cloud-network \
+              -p 8081:8081 \
               -e SERVER_PORT=8081 \
               -e SPRING_PROFILES_ACTIVE=dev \
               -e SPRING_RABBITMQ_HOST=rabbitmq \
               -e SPRING_RABBITMQ_PORT=5672 \
               -e APP_SECURITY_ENABLED=false \
+              -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY" \
+              -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_KEY" \
+              -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
+              -e S3_BUCKET_NAME="$S3_BUCKET" \
               --restart unless-stopped \
-              ${{ secrets.DOCKERHUB_USERNAME }}/cursosonline-app:latest
-
-            echo "=== DEPLOY OK ==="
-          REMOTE
+              $DOCKERHUB_USER/cursosonline-app:latest
+            
+            echo "=== Deploy Complete ==="
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+          EOF
         env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          S3_BUCKET: ${{ vars.S3_BUCKET_NAME || 'despacho-grupo3-bucket' }}
 
       - name: Health check
         run: |
-          sleep 15
-          curl -sf http://${{ secrets.EC2_HOST }}:8080/actuator/health && echo "OK"
+          sleep 20
+          curl -sf http://${{ secrets.EC2_HOST }}:8080/actuator/health && echo " || OK"
